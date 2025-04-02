@@ -1,0 +1,20 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+canvas {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  border: 1px solid black;
+}
