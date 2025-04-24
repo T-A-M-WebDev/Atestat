@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      href="./images/enviorment/decorations/favicon.png"
+      type="image/x-icon"
+    />
+    <title>Game</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="./data/collisions.js" defer></script>
+    <script src="./data/scenery.js" defer></script>
+    <script src="./data/collectibles.js" defer></script>
+    <script src="./components/settings.js" defer></script>
+    <script type="module" src="./components/main.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <canvas id="canvas"></canvas>
+      <div class="UI UX">
+        <div class="RESOURCES-UI wrapper"></div>
+        <div class="image open active">
+          <img src="assets/settings_wheel.png" alt="settings" />
+        </div>
+        <div class="SETTINGS wrapper inactive">
+          <div class="settings-content">
+            <span class="label">SETTINGS</span>
+            <div class="SOUND">
+              <span class="label">SOUND</span>
+              <div class="options">
+                <div class="option">
+                  <input type="checkbox" id="SFX" checked />
+                  <label for="SFX">SFX</label>
+                </div>
+                <div class="option">
+                  <input type="checkbox" id="BG" checked />
+                  <label for="BG">BG</label>
+                </div>
+              </div>
+              <div class="volume">
+                <label for="volume">Volume</label>
+                <input type="range" id="volume" min="0" max="100" value="50" />
+              </div>
+            </div>
+            <div class="LIGHTING">
+              <span class="label">LIGHTING</span>
+              <div class="brightness">
+                <label for="brightness">Brightness</label>
+                <input
+                  type="range"
+                  id="brightness"
+                  min="0"
+                  max="100"
+                  value="50"
+                />
+              </div>
+            </div>
+            <div class="image close inactive">
+              <p>&#x2716;</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

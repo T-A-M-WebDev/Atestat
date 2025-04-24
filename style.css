@@ -1,0 +1,202 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Pixelify Sans", sans-serif;
+}
+
+body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+.container {
+  position: relative;
+  width: 640px;
+  height: 480px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1px solid black;
+  width: 100%;
+  height: 100%;
+}
+
+.UI {
+  position: relative;
+  top: 0;
+  left: 0;
+  padding: 10px;
+  width: 100%;
+  height: 100%;
+}
+
+.RESOURCES-UI {
+  position: absolute;
+  top: 0;
+  right: 0;
+  justify-content: center;
+  align-items: end;
+  display: flex;
+  flex-direction: column;
+  max-width: 200px;
+  padding: 4px 2px;
+}
+
+.resource-container {
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  margin: 5px;
+  padding: 10px;
+  border-image: url(assets/resource_border.png) 20% repeat;
+  border-image-width: 15px;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.resource-image {
+  position: relative;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s ease;
+  width: 25px;
+  height: 25px;
+}
+
+.resource-quantity {
+  position: relative;
+  text-align: center;
+  vertical-align: middle;
+  max-width: 200px;
+  padding: 5px 10px;
+  font-size: medium;
+}
+
+.SETTINGS {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: all 0.3s ease-out;
+}
+
+.SETTINGS .settings-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.SETTINGS .settings-content > * {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  background-color: rgba(164, 164, 164, 0.8);
+}
+
+.SETTINGS .settings-content > .label {
+  font-size: xx-large;
+  font-weight: bold;
+  color: black;
+  text-align: center;
+}
+.SETTINGS .label {
+  font-size: xx-large;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 10px;
+  padding-bottom: 40px;
+  text-align: center;
+}
+.SETTINGS .options {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  padding-bottom: 40px;
+  border-radius: 4px;
+}
+
+.SETTINGS .options .option {
+  text-align: center;
+  padding: 10px 20px;
+  font-size: large;
+  color: white;
+}
+
+.open {
+  position: absolute;
+  top: 50px;
+  left: 10px;
+  cursor: pointer;
+}
+
+.SETTINGS .close {
+  position: relative;
+  font-size: xx-large;
+  color: red;
+}
+
+.SETTINGS .close p:hover {
+  cursor: pointer;
+  color: firebrick;
+}
+
+.image img {
+  width: 32px;
+  height: 32px;
+  transition: all 0.3s ease-out;
+}
+
+.image:hover img {
+  rotate: 90deg;
+}
+
+.UI .SETTINGS.active {
+  left: 0;
+}
+
+.UI .SETTINGS.inactive {
+  left: -100%;
+}
+
+.UI .image.open.inactive {
+  display: none;
+}
+
+.UI .image.open.active {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
