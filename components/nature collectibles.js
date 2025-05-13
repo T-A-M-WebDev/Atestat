@@ -238,10 +238,10 @@ export class tree {
       [this.relPosY / 32 + 2, this.relPosX / 32 + 2],
     ];
     this.treeType = treeType;
-    this.health = 20;
+    this.health = 200;
     this.damageTaken = 30;
     this.resourceType = "wood";
-    this.resourceQuantity = 30;
+    this.resourceQuantity = 120;
     this.spriteWidth = spriteWidth;
     this.spriteHeight = spriteHeight;
     this.width = spriteWidth;

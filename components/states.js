@@ -1,7 +1,8 @@
 import { getRandomNumber } from "./utils.js";
 import { Boundary } from "./boundary.js";
 import { tree, rock } from "./nature collectibles.js";
-const states = {
+import { states as enemyStates } from "./enemy states.js";
+export const states = {
   IDLE: 0,
   WALK: 1,
   RUN: 2,
@@ -40,8 +41,18 @@ export class Idle extends State {
       this.player.currentState.state =
         this.player.currentState.state.toLowerCase();
     } else {
-      if (input === "click") {
+      if (
+        input === "click" &&
+        !this.player.states[states.MINE].toolType == "sword"
+      ) {
         this.player.setState(states.MINE);
+        return;
+      }
+      if (
+        input === "click" &&
+        this.player.states[states.MINE].toolType == "sword"
+      ) {
+        this.player.setState(states.ATTACK);
         return;
       }
       if (input.length == 1 && input[0] == "Shift") return; // only shift -> no change of state
@@ -83,6 +94,7 @@ export class Walk extends State {
       this.player.animations[this.player.direction][
         this.player.currentState.state
       ][0].y;
+
     if (!this.player.game.sound.soundsInQueue.includes(this.sound)) {
       this.player.game.sound.soundsInQueue.push(this.sound);
       this.sound.playbackRate = 2;
@@ -101,6 +113,7 @@ export class Walk extends State {
       this.player.setState(states.IDLE);
       this.player.currentState.state;
       this.player.currentState.state.toLowerCase();
+      this.player.running.active = false;
     } else {
       if (input === "click") {
         if (this.player.game.sound.soundsInQueue.indexOf(this.sound) != -1) {
@@ -116,6 +129,7 @@ export class Walk extends State {
       }
       if (input.length == 2 && !input.includes("Shift")) {
         // two w a s d keys pressed
+        this.player.running.active = false;
         this.player.speed = this.player.twoWayVelocity;
       } else this.player.speed = this.player.basicVelocity;
       if (input.length == 1 && input[0] == "Shift") return;
@@ -268,7 +282,7 @@ export class Mine extends State {
     this.img = new Image();
     this.toolImg = new Image();
     this.toolActive = false; // Flag to check if the tool is active
-    this.toolType = "pickaxe"; // Type of tool
+    this.toolType = "sword"; // Type of tool
     this.itemsInRange = []; // Array to store items in range
     this.toolPositions = {
       down: [],
@@ -509,15 +523,24 @@ export class Mine extends State {
   }
 
   handleInput(input) {
-    if (input === "click") {
+    if (
+      input === "click" &&
+      (this.toolType == "pickaxe" || this.toolType == "axe")
+    ) {
       if (this.player.position == 4) {
         this.player.isAttacking = false;
         this.player.game.input.click = false;
       }
       this.player.setState(states.MINE);
-    } else {
+    } else if (input === "click" && this.toolType == "sword") {
       this.toolActive = false; // Set tool active flag to false
       this.player.running.active = false;
+      this.player.setState(states.ATTACK);
+      this.player.currentState.state =
+        this.player.currentState.state.toLowerCase();
+    } else {
+      this.player.running.active = false;
+      this.toolActive = false; // Set tool active flag to false
       this.player.setState(states.IDLE);
       this.player.currentState.state =
         this.player.currentState.state.toLowerCase();
@@ -531,9 +554,15 @@ export class Mine extends State {
       this.player.direction === "down" ||
       this.player.direction === "right"
     ) {
-      this.toolImg.src = "./images/characters/axe-right.png";
+      if (this.toolType == "axe")
+        this.toolImg.src = "./images/characters/axe-right.png";
+      if (this.toolType == "pickaxe")
+        this.toolImg.src = "./images/characters/pickaxe-right.png";
     } else {
-      this.toolImg.src = "./images/characters/axe-left.png";
+      if (this.toolType == "axe")
+        this.toolImg.src = "./images/characters/axe-left.png";
+      if (this.toolType == "pickaxe")
+        this.toolImg.src = "./images/characters/pickaxe-left.png";
     }
     if (this.player.direction != "left") {
       this.imageDirection = 1;
@@ -552,19 +581,255 @@ export class Attack extends State {
   constructor(player) {
     super("ATTACK");
     this.player = player;
+    this.img = new Image();
+    this.toolImg = new Image();
+    this.toolActive = false; // Flag to check if the tool is active
+    this.toolType = "sword"; // Type of tool
+    this.itemsInRange = []; // Array to store items in range
+    this.currentRotation = 0;
+    this.toolPositions = {
+      down: [],
+      up: [],
+      right: [],
+      left: [],
+    };
+    this.imageDirection = 1; //1 for positive and -1 for negative
+    this.toolCorectionDirectionPos = 1; //var for correcting handle pos
+    this.loadImage(); // Load tool positions when the state is initialized
+  }
+  loadImage() {
+    this.img.src = "./images/characters/sword base.png";
+
+    this.img.onload = () => {
+      const frameSize = 32;
+      const totalFrames = 5;
+      const canvas = document.createElement("canvas");
+      canvas.width = this.img.width;
+      canvas.height = this.img.height;
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(this.img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, this.img.width, this.img.height);
+      const data = imageData.data;
+      const targetColor = [91, 255, 0, 255]; // RGB for #5BFF00
+      this.toolPositions = { down: [], up: [], right: [], left: [] };
+      // Loop through animation frames
+      for (let frame = 0; frame < totalFrames; frame++) {
+        let frameStartX = frame * frameSize;
+
+        for (let y = 0; y < frameSize; y++) {
+          for (let x = 0; x < frameSize; x++) {
+            let pixelX = frameStartX + x;
+            let index = (y * this.img.width + pixelX) * 4; // Get pixel index
+
+            let r = data[index],
+              g = data[index + 1],
+              b = data[index + 2],
+              a = data[index + 3];
+
+            // If the green marker is found, store tool position relative to the player
+            if (
+              r === targetColor[0] &&
+              g === targetColor[1] &&
+              b === targetColor[2] &&
+              a === targetColor[3]
+            ) {
+              let offsetX = x;
+              let offsetY = y;
+
+              // Adjust offsets based on direction and frame
+              if (this.player.direction === "down") {
+                switch (frame) {
+                  case 0:
+                    offsetX += 15;
+                    offsetY += 5;
+                    break;
+                  case 1:
+                    offsetX += 15;
+                    offsetY += 6;
+
+                    break;
+                  case 2:
+                    offsetX += 15;
+                    offsetY += 6;
+
+                  case 3:
+                    offsetX += 13;
+                    offsetY += 8;
+
+                    break;
+                  case 4:
+                    offsetY += 20;
+                    offsetX += 2;
+                    break;
+                }
+              }
+              if (this.player.direction === "left") {
+                switch (frame) {
+                  case 0:
+                    offsetX += 2;
+
+                    break;
+                  case 1:
+                    offsetX += 12;
+
+                    break;
+                  case 2:
+                    offsetX += 14;
+
+                  case 3:
+                    offsetX += 10;
+                    offsetY += 8;
+                    break;
+                  case 4:
+                    offsetX += 10;
+                    break;
+                }
+              }
+
+              if (this.player.direction === "right") {
+                switch (frame) {
+                  case 0:
+                    offsetX += 15;
+                    offsetY -= 3;
+                    break;
+                  case 1:
+                    offsetX += 15;
+                    offsetY -= 6;
+                    break;
+                  case 2:
+                    offsetX += 0;
+                    offsetY += 10;
+                  case 3:
+                    offsetX += 25;
+                    break;
+                  case 4:
+                    offsetX += 25;
+                    break;
+                }
+              }
+              if (this.player.direction === "up") {
+                switch (frame) {
+                  case 0:
+                    offsetX += 4 + 8;
+                    offsetY -= 4;
+                    break;
+                  case 1:
+                    offsetX += 6 + 8;
+                    offsetY += 12;
+                    break;
+                  case 2:
+                    offsetX += 1 + 8;
+                    offsetY += 10;
+                    break;
+                  case 3:
+                    offsetX += 1 + 8;
+                    offsetY += 14;
+                    break;
+                  case 4:
+                    offsetX += 2 + 8;
+                    break;
+                }
+              }
+
+              // Store offset based on direction
+              this.toolPositions[this.player.direction].push({
+                frame,
+                offsetX,
+                offsetY,
+              });
+              this.lastFrame = frame;
+            }
+          }
+        }
+      }
+      this.updateToolImage();
+    };
   }
   enter() {
+    if (this.player.direction == "left") this.imageDirection = -1;
+    else this.imageDirection = 1;
+    this.loadImage(); // Reload tool offsets when entering MINE state
+    this.player.staggerFrames = 10;
+    this.player.isAttacking = true;
+    for (let x in this.player.keysPressed) {
+      this.player.keysPressed[x] = false;
+    }
+    this.player.running.active = false;
     this.player.frameY =
       this.player.animations[this.player.direction][
         this.player.currentState.state
       ][0].y;
+    this.toolActive = true; // Set tool active flag to true
+    this.itemsInRange = []; // Reset items in range
   }
   handleInput(input) {
-    if (input) {
-      console.log("Attack");
+    if (input === "click") {
+      if (this.player.position == 4) {
+        this.player.isAttacking = false;
+        this.player.game.input.click = false;
+      }
+
+      if (this.player.position == 4) {
+        this.player.game.enemyGenerator.enemies.forEach((enemy) => {
+          if (!enemy.isDead && this.checkTargetColission(enemy)) {
+            enemy.health -= this.player.damage;
+            if (enemy.health <= 0) {
+              enemy.isDead = true;
+              enemy.setState(enemyStates.DEAD);
+              enemy.setNewAnimation();
+            }
+          }
+        });
+      }
 
       this.player.setState(states.ATTACK);
+    } else {
+      this.toolActive = false; // Set tool active flag to false
+      this.player.running.active = false;
+      this.player.isAttacking = false;
+      this.player.setState(states.IDLE);
+      this.player.currentState.state =
+        this.player.currentState.state.toLowerCase();
+      return;
     }
+  }
+
+  updateToolImage() {
+    // Set correct tool image based on direction
+    if (
+      this.player.direction === "up" ||
+      this.player.direction === "down" ||
+      this.player.direction === "right"
+    ) {
+      this.toolImg.src = "./images/characters/sword-right.png";
+    } else {
+      this.toolImg.src = "./images/characters/sword-left.png";
+    }
+    if (this.player.direction != "left") {
+      this.imageDirection = 1;
+    } else {
+      this.imageDirection = -1;
+    }
+    if (this.player.direction === "up" || this.player.direction === "right") {
+      this.toolCorectionDirectionPos = -1;
+    } else {
+      this.toolCorectionDirectionPos = 1;
+    }
+  }
+  checkTargetColission(target) {
+    if (!target) return false;
+    // Check if player hitbox is colliding with enemy
+    if (
+      this.player.attackBox.posX >= target.posX - 32 &&
+      this.player.attackBox.posY >= target.posY - 32 &&
+      this.player.attackBox.posX + this.player.attackBox.width / 2 <=
+        target.posX + target.height + 32 &&
+      this.player.attackBox.posY + this.player.attackBox.height / 2 <=
+        target.posY + target.height + 32
+    )
+      return true;
+    return false;
   }
 }
 //Object states
@@ -597,6 +862,8 @@ export class objectIdle extends State {
     }
   }
   handleInput(input = null) {
+    let x = this.object.posX;
+    let y = this.object.posY;
     if (input && this.object.health > 0) {
       this.object.currentState.state =
         this.object.currentState.state.toLowerCase();
@@ -604,22 +871,14 @@ export class objectIdle extends State {
     } else if (input && this.object.health <= 0) {
       this.object.currentState.state =
         this.object.currentState.state.toLowerCase();
-      let x = this.object.posX;
-      let y = this.object.posY;
+
       this.object.setState(coolectibleStates.DEAD);
       setTimeout(() => {
-        this.object.posY = y - 64;
+        this.object.posY = y;
         this.object.posX = x;
         this.object.health = this.object instanceof tree ? 200 : 120;
         this.object.setState(coolectibleStates.OBJECTIDLE); //reset for object after death
         this.object.states[coolectibleStates.ALIVE].addBoundaries();
-        console.log(
-          this.object.currentState,
-          this.object.posX,
-          this.object.posY,
-          this.object.frameX,
-          this.object.frameY
-        );
       }, getRandomNumber(1000, 2000));
     } else {
       this.object.currentState.state =
@@ -649,7 +908,6 @@ export class Alive extends State {
     }
     if (this.object instanceof rock) {
       this.sound = this.object.game.sound.families["SFX"]["rock_hit"];
-      console.log(this.object.health);
       this.object.health -= this.object.damageTaken;
       this.object.frameY = 2 * this.object.spriteHeight;
       if (!this.object.game.sound.soundsInQueue.includes(this.sound)) {
@@ -715,16 +973,11 @@ export class Alive extends State {
       setTimeout(() => {
         this.object.posX = x;
         this.object.posY = y;
+        if (this.object instanceof tree)
+          this.object.posY -= 2 * this.object.game.map.tileSize; // Adjust position for dead state
         this.object.health = this.object instanceof tree ? 200 : 120;
         this.object.setState(coolectibleStates.OBJECTIDLE); // Reset for object after death
         this.addBoundaries();
-        console.log(
-          this.object.currentState,
-          this.object.posX,
-          this.object.posY,
-          this.object.frameX,
-          this.object.frameY
-        );
       }, getRandomNumber(1000, 2000));
     } else if (!input && this.object.health > 0) {
       if (this.object.game.sound.soundsInQueue.indexOf(this.sound) != -1) {

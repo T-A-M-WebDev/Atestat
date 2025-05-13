@@ -7,6 +7,7 @@ import { natureCollectibles } from "./nature collectibles.js";
 import { InputHandler } from "./input handler.js";
 import { AudioPlayer } from "./audio.js";
 import { System } from "./building placement system.js";
+import { enemySystem } from "./enemy generation.js";
 const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
 const tileSize = 32;
@@ -34,8 +35,8 @@ class Game {
       this.ctx.stroke();
       this.ctx.closePath();
     };
-    this.sound = new AudioPlayer(this);
     this.map = new Map(this, this.ctx);
+    this.sound = new AudioPlayer(this);
     this.player = new Player(this, this.ctx);
     this.base = new Base(this, this.ctx);
     this.fire = new Fire(this, this.ctx);
@@ -43,6 +44,7 @@ class Game {
     this.collectibles = new natureCollectibles(this, this.ctx);
     this.input = new InputHandler(this);
     this.buildingSystem = new System(this, this.ctx);
+    this.enemyGenerator = new enemySystem(this, this.ctx);
     this.time = {
       lastTime: 0,
       frameDuration: 16.67, // ms for 60fps
@@ -51,6 +53,8 @@ class Game {
       fps: 0,
       frameCount: 0,
       fpsLastTime: performance.now(),
+      startTime: Date.now(), // 3-minute countdown starts now
+      countdownDuration: 360000, // 3 minutes in milliseconds
     };
     this.foregroundLayers = [this.base.foreground, this.fire.foreground];
     this.lastLayer = [this.player.running];
@@ -62,6 +66,7 @@ class Game {
       ...this.collectibles.trees.orangeTree,
       ...this.collectibles.rocks.stone,
       ...this.buildingSystem.entities,
+      ...this.enemyGenerator.enemies,
       ...this.scenery.interactables,
     ];
     this.moveables.forEach((item, index) => {
@@ -76,13 +81,14 @@ class Game {
   }
   draw() {
     this.map.draw();
+    this.buildingSystem.draw();
+    this.enemyGenerator.draw();
     this.moveables.forEach((item, index) => {
       if (index >= this.moveables.length - 325) return; //interactables on top layer skipping -- always last in array
       item.draw();
     });
     /***PLAYER***/
     this.player.draw();
-
     this.scenery.interactables.forEach((item, index) => {
       if (index >= 173) {
         item.draw();
@@ -109,11 +115,23 @@ class Game {
       item.draw();
     });
     this.player.resources.draw(); //draw resources
-    this.buildingSystem.draw();
   }
   update() {
+    this.moveables = [
+      ...this.map.boundaries,
+      this.base,
+      this.fire,
+      ...this.collectibles.trees.greenTree,
+      ...this.collectibles.trees.orangeTree,
+      ...this.collectibles.rocks.stone,
+      ...this.buildingSystem.entities,
+      ...this.enemyGenerator.enemies, // Now dynamically up-to-date
+      ...this.scenery.interactables,
+    ];
     this.player.update(this.input.lastKeys, this.input.click);
-
+    this.enemyGenerator.enemies.forEach((enemy) => {
+      enemy.update(this.input.lastKeys, this.input.click);
+    });
     this.collectibles.trees.orangeTree.forEach((item) => {
       if (this.player.currentState.state == "mine") {
         if (this.player.currentState.itemsInRange.includes(item)) {
@@ -141,7 +159,50 @@ class Game {
     this.ctx.fillStyle = "white";
     this.ctx.font = "20px Arial";
     this.ctx.fillText(`FPS: ${this.time.fps}`, 10, 30);
+    context.beginPath();
+    context.fillStyle = "rgba(255,255,255,0.5)";
+    context.rect(this.width - 120, this.height - 60, 120, 60);
+    context.closePath();
+    context.fill();
+    this.ctx.fillStyle = "green";
+    this.ctx.font = "12px Arial";
+    this.ctx.fillText(
+      `HEALTH: ${this.player.health}`,
+      this.width - 100,
+      this.height - 30
+    );
+
+    this.ctx.font = "12px Arial bold";
+    this.ctx.fillStyle = "black ";
+    this.ctx.fillText("AUTO RUN/WALK - KEY + SHIFT ", 10, this.height * 0.9);
+    this.ctx.fillText(">>>", 10, this.height * 0.9 + 15);
+    this.ctx.fillText(" RELEASE KEY, HOLD SHIFT", 10, this.height * 0.9 + 30);
   }
+  countdown() {
+    const now = Date.now();
+    const elapsed = now - this.time.startTime;
+    const remaining = Math.max(0, this.time.countdownDuration - elapsed);
+
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    const formattedSeconds = seconds < 10 ? `0${seconds}` : seconds;
+
+    this.ctx.fillStyle = "white";
+    this.ctx.font = "30px Arial";
+    this.ctx.fillText(
+      `${minutes}:${formattedSeconds}`,
+      this.width / 2 - 25,
+      50
+    );
+
+    if (remaining <= 0) {
+      // Optional: End game, trigger event, show message, etc.
+      this.ctx.fillStyle = "red";
+      this.ctx.font = "30px Arial";
+      this.ctx.fillText("Time's Up!", this.width / 2 - 70, this.height / 2);
+    }
+  }
+
   playSound() {
     this.sound.play();
   }
@@ -294,54 +355,9 @@ window.addEventListener("load", () => {
     game.update();
     game.draw();
     game.displayFPS();
+    game.countdown();
     game.playSound();
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
 });
-/***************MOUSE-CONTROLS****************/
-/***************MOUSE-CONTROLS****************/
-/* let holdTimeout;
-let isHolding = false;
-
-window.addEventListener("mousedown", (e) => {
-  if (!game.player.isAttacking) {
-    game.player.isAttacking = true;
-    isHolding = true;
-
-    game.player.update();
-    holdTimeout = setTimeout(() => {
-      if (isHolding) {
-        console.log("hold action");
-
-        // Perform the hold action here
-      }
-    }, 500); // Adjust the hold duration as needed
-  }
-});
-
-window.addEventListener("mouseup", (e) => {
-  clearTimeout(holdTimeout);
-  if (game.player.isAttacking) {
-    game.player.isAttacking = false;
-    isHolding = false;
-  }
-});
-
-window.addEventListener("mouseleave", (e) => {
-  clearTimeout(holdTimeout);
-  if (game.player.isAttacking) {
-    game.player.isAttacking = false;
-    isHolding = false;
-  }
-});
-
-window.addEventListener("click", (e) => {
-  if (!game.player.isAttacking) {
-    game.player.isAttacking = true;
-
-    setTimeout(() => {
-      if (game.player.isAttacking) game.player.isAttacking = false;
-    }, 1400); // Adjust the cooldown duration as needed
-  }
-}); */

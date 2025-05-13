@@ -4,6 +4,7 @@ export class Base {
   constructor(game, ctx) {
     this.game = game;
     this.ctx = ctx;
+    this.base = 1200;
     this.width = this.game.map.tileSize * 3;
     this.height = this.game.map.tileSize * 4;
     this.spriteWidth = 96;
@@ -30,7 +31,7 @@ export class Base {
 
     /****PUSHING ITEM 174 INTO BOUNDARY ARRAY****/
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 1; i < 4; i++) {
       for (let j = 0; j < 4; j++) {
         this.game.map.collisionsMap[Math.floor(this.relPosY / 32) + i][
           Math.floor(this.relPosX / 32) + j

@@ -17,7 +17,9 @@ export class Map {
     this.boundaries = [];
     /*CODE*/
     this.setCollisions();
-    this.setBoundaries();
+    if (this.img.complete) {
+      this.setBoundaries();
+    }
   }
   setBoundaries() {
     this.collisionsMap.forEach((row, i) => {

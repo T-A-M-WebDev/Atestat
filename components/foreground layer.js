@@ -3,7 +3,7 @@ export class ForegroundLayer {
     game,
     ctx,
     relPosX,
-    relPosy,
+    relPosY,
     width,
     height,
     spriteWidth,
@@ -18,17 +18,19 @@ export class ForegroundLayer {
     this.spriteWidth = spriteWidth;
     this.spriteHeight = spriteHeight;
     this.relPosX = relPosX;
-    this.relPosy = relPosy;
+    this.relPosY = relPosY;
     this.posX = position.x;
     this.posY = position.y;
     this.img = new Image();
     this.img.src = source;
+    this.frameX = 0;
+    this.frameY = 0;
   }
-  draw(frameX = 0, frameY = 0) {
+  draw() {
     this.ctx.drawImage(
       this.img,
-      frameX,
-      frameY,
+      this.frameX,
+      this.frameY,
       this.spriteWidth,
       this.spriteHeight / 2,
       this.posX,

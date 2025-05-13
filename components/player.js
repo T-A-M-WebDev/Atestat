@@ -79,6 +79,8 @@ export class Player {
       this.direction
     );
     this.isAttacking = false;
+    this.health = 300;
+    this.damage = 40;
     this.resources = new Resources(this.game, this.ctx, 200, 200);
     this.animations = {
       down: {
@@ -88,6 +90,7 @@ export class Player {
         death: [],
         crossbow: [],
         mine: [],
+        attack: [],
       },
       up: {
         idle: [],
@@ -97,6 +100,7 @@ export class Player {
         crossbow: [],
         mine: [],
         mine: [],
+        attack: [],
       },
       right: {
         idle: [],
@@ -105,6 +109,7 @@ export class Player {
         death: [],
         crossbow: [],
         mine: [],
+        attack: [],
       },
       left: {
         idle: [],
@@ -113,6 +118,7 @@ export class Player {
         death: [],
         crossbow: [],
         mine: [],
+        attack: [],
       },
     };
     this.animationStates = [
@@ -142,8 +148,12 @@ export class Player {
         name: "mine",
         frames: 5,
       },
+      {
+        name: "attack",
+        frames: 5,
+      },
     ];
-    this.playerImg.src = "./images/characters/sprite_sheet.png";
+    this.playerImg.src = "./images/characters/sprite_sheet (2).png";
     //"./images/characters/sprite_sheet.png"; //Base64 URI
 
     /**RUNINNG BAR**/
@@ -214,6 +224,21 @@ export class Player {
               i * this.spriteHeight +
               index * this.spriteHeight * 4 +
               this.spriteHeight * 4; //each 4 directions the animation y changes
+            this.animations[this.possibleDirection[i]][state.name].push({
+              x: positionX,
+              y: positionY,
+            });
+          }
+        }
+      }
+      if (state.name == "attack") {
+        for (let j = 0; j < state.frames; j++) {
+          let positionX = j * this.spriteWidth;
+          for (let i = 0; i < this.possibleDirection.length; i++) {
+            let positionY =
+              i * this.spriteHeight +
+              index * this.spriteHeight * 4 +
+              this.spriteHeight * 4; //each 4 directions the animation y changes            console.log(positionY);
 
             this.animations[this.possibleDirection[i]][state.name].push({
               x: positionX,
@@ -223,6 +248,7 @@ export class Player {
         }
       }
     });
+
     if (
       this.animations[this.direction][this.currentState.state].length - 1 <=
       3
@@ -273,6 +299,7 @@ export class Player {
       this.game.moveables.forEach((item) => {
         item.posX += this.speed;
       });
+
       this.buildBox();
       this.game.foregroundLayers.forEach((item) => {
         item.posX += this.speed;
@@ -287,6 +314,7 @@ export class Player {
       this.game.moveables.forEach((item) => {
         item.posX -= this.speed;
       });
+
       this.buildBox();
       this.game.foregroundLayers.forEach((item) => {
         item.posX -= this.speed;
@@ -298,6 +326,7 @@ export class Player {
       this.game.moveables.forEach((item) => {
         item.posY += this.speed;
       });
+
       this.buildBox();
       this.game.foregroundLayers.forEach((item) => {
         item.posY += this.speed;
@@ -366,7 +395,8 @@ export class Player {
     this.ctx.fill();
     this.ctx.closePath(); */
     if (this.currentState instanceof Mine) this.frameY += this.spriteHeight * 4;
-
+    if (this.currentState instanceof Attack)
+      this.frameY += this.spriteHeight * 4 * 2;
     this.ctx.drawImage(
       this.playerImg,
       this.frameX,
@@ -379,7 +409,10 @@ export class Player {
       this.playerHeight
     );
 
-    if (this.currentState instanceof Mine) {
+    if (
+      this.currentState instanceof Mine ||
+      this.currentState instanceof Attack
+    ) {
       let toolOffsets = this.currentState.toolPositions[this.direction];
 
       let toolOffset = toolOffsets.find(
@@ -389,83 +422,176 @@ export class Player {
       if (toolOffset) {
         let toolX = this.posX; // 4px handle width
         let toolY = this.posY;
+        if (this.currentState instanceof Mine) {
+          this.staggerFrames = 20; // Reset stagger frames for the tool animation
 
-        this.staggerFrames = 20; // Reset stagger frames for the tool animation
+          // Save the context state for transformations
+          this.ctx.save();
+          // Apply translation for positioning the tool
+          if (this.direction == "left")
+            this.ctx.translate(
+              toolX +
+                toolOffset.offsetX * this.currentState.imageDirection +
+                50,
+              toolY + toolOffset.offsetY + 8
+            );
+          else
+            this.ctx.translate(
+              toolX + toolOffset.offsetX * this.currentState.imageDirection - 2,
+              toolY + toolOffset.offsetY + 8
+            );
+          let endSwingMultiplier = this.direction == "up" ? 0.1 : 0.175;
+          let swingRotation;
+          swingRotation =
+            Math.sin(Math.log(toolOffset.frame + 1) / Math.log(2)) *
+              Math.PI *
+              (0.25 + toolOffset.frame * endSwingMultiplier) *
+              this.currentState.imageDirection +
+            0.1 * Math.PI;
 
-        // Save the context state for transformations
-        this.ctx.save();
-        // Apply translation for positioning the tool
-        if (this.direction == "left")
-          this.ctx.translate(
-            toolX + toolOffset.offsetX * this.currentState.imageDirection + 50,
-            toolY + toolOffset.offsetY + 8
+          this.ctx.rotate(swingRotation);
+
+          // Special case for when direction is "left"
+          /*       this.game.drawRect(
+            0,
+            0,
+            123, // values for expecting weapon
+            123,
+            "yellow"
+          ); */
+          // Draw the rectangle (for debugging or collision detection)
+          this.game.drawRect(
+            -this.currentState.toolImg.width / 2 +
+              toolOffset.offsetX -
+              this.currentState.toolImg.width +
+              10,
+            (-3 * this.currentState.toolImg.height) / 5,
+            32, // values for expecting weapon
+            32,
+            "red"
           );
-        else
-          this.ctx.translate(
-            toolX + toolOffset.offsetX * this.currentState.imageDirection - 2,
-            toolY + toolOffset.offsetY + 8
-          );
-        let endSwingMultiplier = this.direction == "up" ? 0.1 : 0.175;
+          let offPos;
+          // Draw the image of the tool
+          if (this.direction == "left")
+            offPos = -this.currentState.toolImg.width / 2 - 4;
+          else
+            offPos =
+              -this.currentState.toolImg.width +
+              toolOffset.offsetX -
+              this.currentState.toolImg.width / 2 -
+              4 +
+              4;
 
-        let swingRotation =
-          Math.sin(Math.log(toolOffset.frame + 1) / Math.log(2)) *
-            Math.PI *
-            (0.25 + toolOffset.frame * endSwingMultiplier) *
-            this.currentState.imageDirection +
-          0.1 * Math.PI; // Adjust the rotation angle as needed
-        this.ctx.rotate(swingRotation);
-        // Special case for when direction is "left"
-        /*       this.game.drawRect(
-          0,
-          0,
-          123, // values for expecting weapon
-          123,
-          "yellow"
-        ); */
-        // Draw the rectangle (for debugging or collision detection)
-        /*         this.game.drawRect(
-          -this.currentState.toolImg.width / 2 +
-            toolOffset.offsetX -
-            this.currentState.toolImg.width,
-          (-3 * this.currentState.toolImg.height) / 5,
-          32, // values for expecting weapon
-          32,
-          "red"
-        ); */
-        let offPos;
-        // Draw the image of the tool
-        if (this.direction == "left")
-          offPos = -this.currentState.toolImg.width / 2 - 4;
-        else
-          offPos =
-            -this.currentState.toolImg.width +
-            toolOffset.offsetX -
-            this.currentState.toolImg.width / 2 -
-            4 +
-            4;
-
-        this.ctx.drawImage(
-          this.currentState.toolImg,
-          offPos,
-          (-3 * this.currentState.toolImg.height) / 5,
-          32, // values for expecting weapon
-          32
-        );
-
-        // Restore the context to its original state
-        this.ctx.restore();
-        if (this.direction == "up")
           this.ctx.drawImage(
-            this.playerImg,
-            this.frameX,
-            this.frameY + 1, //cover for pivot points of weapon
-            this.spriteWidth,
-            this.spriteHeight,
-            this.posX,
-            this.posY,
-            this.playerWidth,
-            this.playerHeight
+            this.currentState.toolImg,
+            offPos,
+            (-3 * this.currentState.toolImg.height) / 5,
+            32, // values for expecting weapon
+            32
           );
+
+          // Restore the context to its original state
+          this.ctx.restore();
+          if (this.direction == "up")
+            this.ctx.drawImage(
+              this.playerImg,
+              this.frameX,
+              this.frameY + 1, //cover for pivot points of weapon
+              this.spriteWidth,
+              this.spriteHeight,
+              this.posX,
+              this.posY,
+              this.playerWidth,
+              this.playerHeight
+            );
+        } else if (this.currentState instanceof Attack) {
+          this.staggerFrames = 10; // Reset stagger frames for the tool animation
+          // Save the context state for transformations
+          this.ctx.save();
+          // Apply translation for positioning the tool
+          if (this.direction == "left")
+            this.ctx.translate(
+              toolX +
+                toolOffset.offsetX * this.currentState.imageDirection +
+                40,
+              toolY + toolOffset.offsetY + 8
+            );
+          else
+            this.ctx.translate(
+              toolX + toolOffset.offsetX * this.currentState.imageDirection - 4,
+              toolY + toolOffset.offsetY + 8
+            );
+          let swingRotation;
+          if (!this.direction == "up" && !this.direction == "right")
+            swingRotation =
+              Math.sin(Math.log(toolOffset.frame + 1) / Math.log(2)) *
+              Math.PI *
+              (0.5 + toolOffset.frame * 0.2) *
+              this.currentState.imageDirection;
+          else
+            swingRotation =
+              Math.sin(Math.log(toolOffset.frame + 1) / Math.log(2)) *
+                Math.PI *
+                (0.5 + toolOffset.frame * 0.1) *
+                this.currentState.imageDirection +
+              0.1 * Math.PI;
+          // Adjust the rotation angle as needed
+
+          this.ctx.rotate(swingRotation);
+
+          // Special case for when direction is "left"
+          /*        this.game.drawRect(
+            0,
+            0,
+            123, // values for expecting weapon
+            123,
+            "yellow"
+          ); */
+          // Draw the rectangle (for debugging or collision detection)
+
+          let offPos;
+          // Draw the image of the tool
+          if (this.direction == "left")
+            offPos = -this.currentState.toolImg.width / 2;
+          else
+            offPos =
+              -this.currentState.toolImg.width +
+              toolOffset.offsetX -
+              this.currentState.toolImg.width / 2 -
+              4 +
+              4;
+          /*         this.game.drawRect(
+            offPos,
+            (-3 * this.currentState.toolImg.height) / 4,
+            32, // values for expecting weapon
+            32,
+            32, // values for expecting weapon
+            32,
+            "red"
+          ); */
+          this.ctx.drawImage(
+            this.currentState.toolImg,
+            offPos,
+            (-3 * this.currentState.toolImg.height) / 5,
+            32, // values for expecting weapon
+            32
+          );
+
+          // Restore the context to its original state
+          this.ctx.restore();
+          if (this.direction == "up")
+            this.ctx.drawImage(
+              this.playerImg,
+              this.frameX,
+              this.frameY + 1, //cover for pivot points of weapon
+              this.spriteWidth,
+              this.spriteHeight,
+              this.posX,
+              this.posY,
+              this.playerWidth,
+              this.playerHeight
+            );
+        }
       }
     }
     //running bar
@@ -477,7 +603,6 @@ export class Player {
     if (this.running.cooldown && this.running.progress === 0) {
       this.running.cooldown = false;
     }
-
     //player attack box management
     let posX;
     let posY;
@@ -531,7 +656,6 @@ export class Player {
     )
       this.animationEnd = true; //end of drawing
     else this.animationEnd = false;
-
     this.ctx.beginPath();
     /*     this.ctx.rect(
       this.hitbox.x,

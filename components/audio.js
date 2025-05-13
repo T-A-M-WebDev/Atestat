@@ -3,6 +3,7 @@ export class AudioPlayer {
     this.game = game;
     this.baseVolume = 1;
     this.soundsInQueue = [];
+    this.options = { BG: true, SFX: false, EVENTS: true };
     this.families = {
       BG: {
         wind: new Audio("./assets/sounds/wind.mp3"),
@@ -16,6 +17,7 @@ export class AudioPlayer {
         rock_collect: new Audio("./assets/sounds/rock_collect.mp3"),
         wood_collect: new Audio("./assets/sounds/wood_collect.mp3"),
         grass: new Audio("./assets/sounds/grass.mp3"),
+        build: new Audio("./assets/sounds/handsaw.wav"),
       },
       EVENTS: { nightStart: new Audio("./assets/sounds/start_night.mp3") },
     };
@@ -27,17 +29,24 @@ export class AudioPlayer {
     this.families.BG.fire.addEventListener("ended", () => {
       this.families.BG.fire.currentTime = 0;
       this.families.BG.fire.play();
+      if (!this.soundsInQueue.includes(this.families["BG"]["fire"])) {
+        this.soundsInQueue.push(this.families["BG"]["fire"]);
+      }
     });
-    this.soundsInQueue.push(
-      this.families["BG"]["wind"],
-      this.families["BG"]["fire"]
-    );
+    this.families.SFX.build.addEventListener("ended", () => {
+      this.families.SFX.build.pause();
+      this.families.SFX.build.currentTime = 0;
+    });
+    this.soundsInQueue.push(this.families["BG"]["fire"]);
   }
   play() {
     this.setVolumeStandard();
     this.soundsInQueue.forEach((sound) => {
       if (sound.currentTime == 0 || sound.ended) sound.play();
     });
+    if (this.soundsInQueue.includes(this.families["SFX"]["build"])) {
+      console.log("build sound is in the queue");
+    }
   }
   stop() {
     this.soundsInQueue.forEach((sound) => sound.pause());
@@ -70,7 +79,7 @@ export class AudioPlayer {
 
   setVolumeStandard() {
     Object.values(this.families.BG).forEach((item) => {
-      item.volume = this.baseVolume * 0.3;
+      item.volume = this.baseVolume * 0.6;
     });
     Object.values(this.families.SFX).forEach((item) => {
       item.volume = this.baseVolume * 0.6;

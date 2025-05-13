@@ -10,6 +10,6 @@ export class Boundary {
     this.height = height;
   }
   draw() {
-    this.game.drawRect(this.posX, this.posY, this.width, this.height, "yellow");
+    // this.game.drawRect(this.posX, this.posY, this.width, this.height, "yellow");
   }
 }

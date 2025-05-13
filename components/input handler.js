@@ -1,3 +1,4 @@
+import { states } from "./states.js";
 export class InputHandler {
   constructor(game) {
     this.game = game;
@@ -18,44 +19,77 @@ export class InputHandler {
             }
             this.lastKeys.push(e.key);
             break;
+          case "1":
+            this.game.player.states[states.MINE].toolType = "pickaxe";
+            this.setToolType("pickaxe");
+            break;
+          case "2":
+            this.game.player.states[states.MINE].toolType = "axe";
+            this.setToolType("axe");
+            break;
+          case "3":
+            this.game.player.states[states.MINE].toolType = "sword";
+            this.setToolType("sword");
+            break;
         }
       }
-
-      // console.log("keydown", this.lastKeys);
     });
-
     window.addEventListener("keyup", (e) => {
       this.lastKeys.splice(this.lastKeys.indexOf(e.key), 1);
-      //  console.log("keyup", this.lastKeys);
     });
+    document
+      .querySelectorAll(".tools-container .tools .tool")
+      .forEach((element) => {
+        element.addEventListener("click", () => {
+          // Remove the "active" class from all sibling elements
+          element.parentNode.querySelectorAll(".tool").forEach((sibling) => {
+            sibling.classList.remove("active");
+          });
+
+          // Add the "active" class to the clicked element
+          element.classList.add("active");
+
+          // Update the tool type in the player's state
+          this.game.player.states[states.MINE].toolType = element.id;
+        });
+      });
 
     window.addEventListener("mousedown", (e) => {
-      if (!game.player.isAttacking) {
-        game.player.isAttacking = true;
+      if (!this.game.player.isAttacking) {
+        this.game.player.isAttacking = true;
         this.isHolding = true;
         this.click = true;
-        game.player.update([], this.click); // Pass the correct click value
-        this.holdTimeout = setTimeout(() => {
+
+        // Trigger the initial update
+        this.game.player.update([], this.click);
+
+        // Set an interval to handle the "holding" state
+        this.holdInterval = setInterval(() => {
           if (this.isHolding) {
-            console.log("hold action");
+            console.log("Holding...");
+            this.game.player.isAttacking = true;
+            this.isHolding = true;
+            this.click = true; // Trigger update while holding
           }
-        }, 500);
+        }, 300); // Repeat every 300ms
       }
     });
 
     window.addEventListener("mouseup", (e) => {
-      clearTimeout(this.holdTimeout);
-      if (game.player.isAttacking) {
-        game.player.isAttacking = false;
+      // Clear the hold interval and reset states
+      clearInterval(this.holdInterval);
+      if (this.game.player.isAttacking) {
+        this.game.player.isAttacking = false;
         this.isHolding = false;
         this.click = false;
       }
     });
 
     window.addEventListener("mouseleave", (e) => {
-      clearTimeout(this.holdTimeout);
-      if (game.player.isAttacking) {
-        game.player.isAttacking = false;
+      // Clear the hold interval and reset states
+      clearInterval(this.holdInterval);
+      if (this.game.player.isAttacking) {
+        this.game.player.isAttacking = false;
         this.isHolding = false;
         this.click = false;
       }
@@ -68,5 +102,12 @@ export class InputHandler {
         game.player.update([], this.click); // Ensure click is passed
       }
     });
+  }
+  setToolType(tool) {
+    document
+      .querySelectorAll(".tools-container .tools .tool")
+      .forEach((element) => {
+        element.classList.toggle("active", element.id === tool);
+      });
   }
 }
